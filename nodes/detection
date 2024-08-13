@@ -18,7 +18,7 @@ def img_callback(data):
 
     class_pub.publish(String(data=str(names)))
 
-MODEL = 'modelname.pt'
+MODEL = 'yolov8_obb_finetuned.pt'
 model = YOLO(MODEL)
 
 rospy.init_node("yolo_detection")
