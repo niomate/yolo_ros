@@ -18,4 +18,4 @@ from PIL import Image
 model = YOLO("yolov8_obb_finetuned.pt")
 
 
-result = model(Image.open("image.png"))
+result = model(Image.open("image.jpg"))

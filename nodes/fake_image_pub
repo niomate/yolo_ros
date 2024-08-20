@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+import copy
+import os
+
+import rospy
+from PIL import Image
+from sensor_msgs.msg import Image as ImageMsg
+import ros_numpy as rosnp
+import numpy as np
+
+rospy.init_node("fake_image_pub")
+
+here = os.path.dirname(__file__)
+
+image_path = os.path.join(here, "../image.jpg")
+image = rosnp.msgify(ImageMsg, np.array(Image.open(image_path)), encoding="rgb8")
+pub = rospy.Publisher("/camera/raw", ImageMsg, queue_size=5)
+rate = rospy.Rate(30)
+
+while True:
+    pub.publish(copy.deepcopy(image))
+    rate.sleep()

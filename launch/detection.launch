@@ -1,5 +1,9 @@
 <launch>
+	<node pkg="yolo_ros" name="fake_image_pub" type="fake_image_pub"/>
+
+	<remap from="/camera/raw" to="camera"/>
+
 	<node pkg="yolo_ros" name="detection" type="detection">
-		<param name="model" type="string" value="$(find yolo_ros)/yolov8_obb_finetuned.pt"
+		<param name="model" type="string" value="$(find yolo_ros)/yolov8_obb_finetuned.pt"/>
 	</node>
 </launch>
