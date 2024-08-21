@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(yolo_ros)
 
 find_package(catkin REQUIRED COMPONENTS
+	message_generation
   message_runtime
   rospy
   std_msgs
@@ -16,6 +17,13 @@ catkin_python_setup()
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
+
+add_message_files(FILES
+	DetectedObject.msg
+	DetectedState.msg
+)
+
+generate_messages(DEPENDENCIES std_msgs sensor_msgs)
 
 ## To declare and build messages, services or actions from within this
 ## package, follow these steps:

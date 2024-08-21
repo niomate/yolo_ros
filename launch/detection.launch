@@ -1,9 +1,20 @@
 <launch>
-	<node pkg="yolo_ros" name="fake_image_pub" type="fake_image_pub"/>
+	<!-- <node pkg="yolo_ros" name="fake_image_pub" type="fake_image_pub"/> -->
 
 	<remap from="/camera/raw" to="camera"/>
+	<remap to="/azure/rgb/image_raw" from="rgb"/>
+	<remap to="/azure/rgb/camera_info" from="rgb_info"/>
+	<remap to="/azure/depth_to_rgb/image_raw" from="transformed_depth"/>
+	<remap to="/azure/depth_to_rgb/camera_info" from="depth_to_rgb_info"/>
 
-	<node pkg="yolo_ros" name="detection" type="detection">
+	<node pkg="yolo_ros" name="detection" type="detection" output="screen">
 		<param name="model" type="string" value="$(find yolo_ros)/yolov8_obb_finetuned.pt"/>
 	</node>
+
+	<include ns="azure" file="$(find azure_kinect_ros_driver)/launch/kinect_rgbd.launch">
+		<arg name="color_enabled" value="true"/>
+		<arg name="fps" value="15"/>
+		<arg name="depth_mode" value="NFOV_UNBINNED"/>
+		<arg name="debayer_processing" value="true"/>
+	</include>
 </launch>
