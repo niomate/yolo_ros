@@ -1,0 +1,6 @@
+ultralytics
+Pillow
+supervision
+scipy
+numpy
+opencv-python
