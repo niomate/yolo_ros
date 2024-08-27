@@ -43,7 +43,7 @@ def img_callback(data):
     image = auto_gamma_correction(image)
 
     result = model(image, verbose=False)[0]
-    detections = sv.Detections.from_ultralytics(result)
+    detections = sv.Detections.from_ultralytics(result).with_nms()
     detections = detections[detections.confidence > 0.6]
 
     state_msg = DetectedState()
