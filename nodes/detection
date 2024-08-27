@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import hashlib
 import os
 import rospy
 from ultralytics import YOLO
@@ -60,6 +61,7 @@ def img_callback(data):
         msg.center = (
             np.mean(data["xyxyxyxy"].reshape((4, 2)), axis=0).astype(int).tolist()
         )
+        msg.id = msg.objclass + "_" + str(hash(str(msg.center)))
 
         centroids, labels = kmeans2(image[y1:y2, x1:x2].reshape((-1, 3)) / 255.0, 3)
         _, counts = np.unique(labels, return_counts=True)
@@ -71,9 +73,7 @@ def img_callback(data):
 
         state_msg.detected_objects.append(msg)
 
-        annotation_labels.append(
-            f"{msg.dominant_color} {msg.objclass} ({confidence:.2f})"
-        )
+        annotation_labels.append(f"{msg.dominant_color} {msg.id} ({confidence:.2f})")
 
     box_annotator = sv.BoxAnnotator()
     annotated_image = box_annotator.annotate(scene=image.copy(), detections=detections)

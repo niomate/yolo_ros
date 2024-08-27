@@ -1,3 +1,4 @@
+string id
 string objclass
 uint16[3] dominant_color
 float32 confidence
