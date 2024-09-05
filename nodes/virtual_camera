@@ -2,7 +2,7 @@
 import rospy
 import pyvirtualcam
 import ros_numpy as rosnp
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 
 
 def img_callback(msg, virtual_camera):
@@ -13,8 +13,9 @@ def img_callback(msg, virtual_camera):
 
 if __name__ == "__main__":
     rospy.init_node("virtual_camera")
+    camera_info = rospy.wait_for_message("camera_info", CameraInfo)
     # TODO: Read camera information from ROS
-    cam = pyvirtualcam.Camera(width=2048, height=1536, fps=30)
+    cam = pyvirtualcam.Camera(width=camera_info.width, height=camera_info.height, fps=30)
     print(f"Using virtual camera {cam.device}")
     rospy.Subscriber("rgb", Image, img_callback, cam)
     rospy.spin()
