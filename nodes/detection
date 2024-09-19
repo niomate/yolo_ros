@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import math
-import hashlib
 import os
 import rospy
 from ultralytics import YOLO
 from sensor_msgs.msg import Image as ImageMsg
-from std_msgs.msg import String
 import ros_numpy as rosnp
 import numpy as np
 import supervision as sv
@@ -35,20 +33,23 @@ def auto_gamma_correction(image):
     return cv2.LUT(image, table)
 
 
-def img_callback(data):
+def img_callback(msg, args):
+    state_pub, annotated_pub, confidence_threshold = args
     # Discard alpha channel
-    image = Image.fromarray(rosnp.numpify(data)[:, :, :3])
+    image = Image.fromarray(rosnp.numpify(msg)[:, :, :3])
     image = ImageOps.autocontrast(image, 0.2)
     image = image.filter(ImageFilter.GaussianBlur(0.2))
     image = np.array(image)
     image = auto_gamma_correction(image)
 
+    encoding = msg.encoding
+
     result = model(image, verbose=False)[0]
     detections = sv.Detections.from_ultralytics(result).with_nms()
-    detections = detections[detections.confidence > 0.7]
+    detections = detections[detections.confidence > confidence_threshold]
 
     state_msg = DetectedState()
-    state_msg.image = data
+    state_msg.image = msg
     state_msg.detected_objects = []
     annotation_labels = []
     valid_detections = list(range(len(detections)))
@@ -61,7 +62,7 @@ def img_callback(data):
         msg.confidence = confidence
         msg.xyxyxyxy = data["xyxyxyxy"].reshape((8,)).astype(int).tolist()
         msg.center = (
-            np.mean(data["xyxyxyxy"].reshape((4, 2)), axis=0).astype(int).tolist()
+            np.mean(data["xyxyxyxy"].reshape((-1, 2)), axis=0).astype(int).tolist()
         )
         msg.id = msg.objclass + "_" + str(hash(str(msg.center)))
 
@@ -81,11 +82,11 @@ def img_callback(data):
         state_msg.detected_objects.append(msg)
 
         annotation_labels.append(
-            f"{msg.dominant_color} {msg.id} ({confidence:.2f}) ({msg.center})"
+            f"{msg.dominant_color} {msg.id} @ ({confidence:.2f}) ({msg.center})"
         )
 
     detections = detections[valid_detections]
-    box_annotator = sv.BoxAnnotator()
+    box_annotator = sv.OrientedBoxAnnotator()
     annotated_image = box_annotator.annotate(scene=image.copy(), detections=detections)
 
     label_annotator = sv.RichLabelAnnotator(text_position=sv.Position.BOTTOM_CENTER)
@@ -93,8 +94,10 @@ def img_callback(data):
         scene=annotated_image.copy(), detections=detections, labels=annotation_labels
     )
 
-    det_image_pub.publish(
-        rosnp.msgify(ImageMsg, np.array(annotated_image), encoding="bgr8")
+    encoding = encoding.replace("a", "")
+
+    annotated_pub.publish(
+        rosnp.msgify(ImageMsg, np.array(annotated_image), encoding=encoding)
     )
 
     state_pub.publish(state_msg)
@@ -102,14 +105,30 @@ def img_callback(data):
 
 here = os.path.dirname(__file__)
 
-model_path = os.path.join(here, "../yolov8_obb_finetuned.pt")
+# model_path = os.path.join(here, "../yolov8_obb_finetuned.pt")
+model_path = os.path.join(here, "../best.pt")
 model = YOLO(model_path)
 
 rospy.init_node("yolo_detection")
-rospy.Subscriber("rgb", ImageMsg, img_callback)
 
 det_image_pub = rospy.Publisher("rgb/annotated", ImageMsg, queue_size=5)
-class_pub = rospy.Publisher("detected_classes", String, queue_size=5)
+det_image_pub_wrist = rospy.Publisher("wrist_rgb/annotated", ImageMsg, queue_size=5)
+
 state_pub = rospy.Publisher("detected_objects", DetectedState, queue_size=5)
+state_pub_wrist = rospy.Publisher("detected_objects_wrist", DetectedState, queue_size=5)
+
+rospy.Subscriber(
+    "rgb",
+    ImageMsg,
+    img_callback,
+    (state_pub, det_image_pub, 0.7),
+)
+rospy.Subscriber(
+    "wrist_rgb",
+    ImageMsg,
+    img_callback,
+    (state_pub_wrist, det_image_pub_wrist, 0.9),
+)
+
 
 rospy.spin()

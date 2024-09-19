@@ -11,11 +11,18 @@
 		<param name="model" type="string" value="$(find yolo_ros)/yolov8_obb_finetuned.pt"/>
 	</node>
 
-	<node pkg="yolo_ros" name="cv_virtual_camera" type="virtual_camera" output="screen"/>
+	<node pkg="yolo_ros" name="cv_virtual_camera_realsense" type="virtual_camera" output="screen">
+		<remap to="/realsense/camera/color/image_raw" from="~image"/>
+		<remap to="/realsense/camera/color/camera_info" from="~camera_info"/>
+		<param name="device" value="/dev/video0"/>
+	</node>
 
-	<node pkg="tf" type="static_transform_publisher" name="azure_transform_publisher" args="0.09733024494259876 -1.105083830530163 0.7101432986462977 -0.43382133525473743 0.40211773657416483 0.5718652126138913 0.5683929570397015 base camera_base 100" />
+	<node pkg="tf" type="static_transform_publisher" name="azure_transform_publisher" args="0.06733024494259876 -1.105083830530163 0.7141432986462977 -0.43382133525473743 0.40211773657416483 0.5718652126138913 0.5683929570397015 base camera_base 100" />
 
-	<node pkg="tf" type="static_transform_publisher" name="realsense_transform_publisher" args="0.05 0.087 0.12 3.14159 -1.5708 1.5708 tool0 camera_link 100" />
+	<!-- <node pkg="tf" type="static_transform_publisher" name="realsense_transform_publisher" args="0.05 0.087 0.12 3.14159 -1.5708 1.5708 tool0 camera_link 100" /> -->
+	<node pkg="tf" type="static_transform_publisher" name="realsense_transform_publisher" args="0.03405346327840402 0.07333420515755484 0.11080377914611254 0.49372101979370797 0.5078878402140233 0.49647754283474566 -0.5017963190751494 tool0 camera_link 100" />
+
+	<node pkg="tf" type="static_transform_publisher" name="realsense_target_transform_publisher" args="0.136 -0.035 0.25 3.14159 0 0 camera_color_optical_frame camera_target_frame 100" />
 
 	<include ns="azure" file="$(find azure_kinect_ros_driver)/launch/kinect_rgbd.launch">
 		<arg name="color_enabled" value="true"/>
@@ -28,5 +35,10 @@
 
 	<include ns="realsense" file="$(find realsense2_camera)/launch/rs_camera.launch">
 		<arg name="enable_pointcloud" value="true"/>
+		<arg name="align_depth" value="true"/>
 	</include>
+
+	<node name="mqtt_bridge" pkg="mqtt_bridge" type="mqtt_bridge_node.py" output="screen">
+		<rosparam file="$(find yolo_ros)/mqtt_bridge_config.yaml" command="load" />
+  </node>
 </launch>

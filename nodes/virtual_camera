@@ -13,9 +13,11 @@ def img_callback(msg, virtual_camera):
 
 if __name__ == "__main__":
     rospy.init_node("virtual_camera")
-    camera_info = rospy.wait_for_message("camera_info", CameraInfo)
-    # TODO: Read camera information from ROS
-    cam = pyvirtualcam.Camera(width=camera_info.width, height=camera_info.height, fps=30)
+    camera_info = rospy.wait_for_message("~camera_info", CameraInfo)
+    device = rospy.get_param("~device", "/dev/video0")
+    cam = pyvirtualcam.Camera(
+        width=camera_info.width, height=camera_info.height, fps=30, device=device
+    )
     print(f"Using virtual camera {cam.device}")
-    rospy.Subscriber("rgb", Image, img_callback, cam)
+    rospy.Subscriber("~image", Image, img_callback, cam)
     rospy.spin()
