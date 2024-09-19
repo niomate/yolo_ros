@@ -37,8 +37,4 @@
 		<arg name="enable_pointcloud" value="true"/>
 		<arg name="align_depth" value="true"/>
 	</include>
-
-	<node name="mqtt_bridge" pkg="mqtt_bridge" type="mqtt_bridge_node.py" output="screen">
-		<rosparam file="$(find yolo_ros)/mqtt_bridge_config.yaml" command="load" />
-  </node>
 </launch>
