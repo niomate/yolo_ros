@@ -80,12 +80,6 @@ def img_callback(msg, args):
 
         if len(bbox_pixels) == 0:
             valid_detections.pop(valid_detections.index(i))
-        msg = DetectedObject()
-        msg.objclass = str(data["class_name"])
-        msg.confidence = confidence
-        msg.xyxyxyxy = bbox.reshape((8,)).astype(np.int32).tolist()
-        msg.center = center
-        msg.id = msg.objclass + "_" + str(hash(str(msg.center)))
             continue
 
         centroids, labels = kmeans2(bbox_pixels / 255.0, 3)
