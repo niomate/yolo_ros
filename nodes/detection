@@ -7,6 +7,9 @@ from sensor_msgs.msg import Image as ImageMsg
 import ros_numpy as rosnp
 import numpy as np
 import supervision as sv
+from ultralytics.utils.ops import xyxyxyxy2xywhr
+from scipy.spatial.transform import Rotation as R
+from scipy.ndimage import rotate
 
 from scipy.cluster.vq import kmeans2
 import cv2
@@ -55,20 +58,34 @@ def img_callback(msg, args):
     valid_detections = list(range(len(detections)))
 
     for i, (bbox, _, confidence, _, _, data) in enumerate(detections):
-        x1, y1, x2, y2 = bbox.astype(int)
-        msg = DetectedObject()
+        x1, y1, x2, y2 = bbox.astype(np.int32)
+        bbox = np.array(data["xyxyxyxy"]).reshape((-1, 2))
+        center = np.mean(bbox).astype(np.int32).tolist()
 
-        msg.objclass = str(data["class_name"])
-        msg.confidence = confidence
-        msg.xyxyxyxy = data["xyxyxyxy"].reshape((8,)).astype(int).tolist()
-        msg.center = (
-            np.mean(data["xyxyxyxy"].reshape((-1, 2)), axis=0).astype(int).tolist()
+        # Extract the pixels from the oriented bounding box for a more
+        # accurate dominant color estimation
+        angle = xyxyxyxy2xywhr(bbox)[-1]
+        rotation_matrix = R.from_rotvec([0, 0, angle]).as_matrix()[:2, :2]
+
+        # Rotate oriented bounding box around its center point
+        obb = ((bbox - center) @ np.linalg.inv(rotation_matrix)) + center
+        obb = obb.astype(np.int32).flatten()
+
+        # Rotate the image in the same direction, so we can
+        # retrieve the data more efficiently
+        rotated_image = rotate(image, -angle, reshape=False)
+        bbox_pixels = rotated_image[obb[1] : obb[7] + 1, obb[0] : obb[6] + 1].reshape(
+            (-1, 3)
         )
-        msg.id = msg.objclass + "_" + str(hash(str(msg.center)))
 
-        bbox_pixels = image[y1:y2, x1:x2].reshape((-1, 3))
         if len(bbox_pixels) == 0:
             valid_detections.pop(valid_detections.index(i))
+        msg = DetectedObject()
+        msg.objclass = str(data["class_name"])
+        msg.confidence = confidence
+        msg.xyxyxyxy = bbox.reshape((8,)).astype(np.int32).tolist()
+        msg.center = center
+        msg.id = msg.objclass + "_" + str(hash(str(msg.center)))
             continue
 
         centroids, labels = kmeans2(bbox_pixels / 255.0, 3)
@@ -77,6 +94,12 @@ def img_callback(msg, args):
         dominant_colors = centroids[np.argsort(-counts)]
         dominant_colors = (dominant_colors * 255).astype(np.uint8)
 
+        msg = DetectedObject()
+        msg.objclass = str(data["class_name"])
+        msg.confidence = confidence
+        msg.xyxyxyxy = bbox.reshape((8,)).astype(np.int32).tolist()
+        msg.center = center
+        msg.id = msg.objclass + "_" + str(hash(str(msg.center)))
         msg.dominant_color = dominant_colors[0, ::-1].tolist()
 
         state_msg.detected_objects.append(msg)
