@@ -2,11 +2,11 @@
 import copy
 import os
 
+import numpy as np
+import ros_numpy as rosnp
 import rospy
 from PIL import Image
 from sensor_msgs.msg import Image as ImageMsg
-import ros_numpy as rosnp
-import numpy as np
 
 rospy.init_node("fake_image_pub")
 
