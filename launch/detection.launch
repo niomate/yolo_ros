@@ -11,11 +11,17 @@
 		<param name="model" type="string" value="$(find yolo_ros)/yolov8_obb_finetuned.pt"/>
 	</node>
 
-	<node pkg="yolo_ros" name="cv_virtual_camera_realsense" type="virtual_camera" output="screen">
+	<node pkg="yolo_ros" name="cv_virtual_camera" type="virtual_camera" output="screen">
+		<remap to="/azure/rgb/image_raw" from="~image"/>
+		<remap to="/azure/rgb/camera_info" from="~camera_info"/>
+		<param name="device" value="/dev/video0"/>
+	</node>
+
+	<!-- <node pkg="yolo_ros" name="cv_virtual_camera_realsense" type="virtual_camera" output="screen">
 		<remap to="/realsense/camera/color/image_raw" from="~image"/>
 		<remap to="/realsense/camera/color/camera_info" from="~camera_info"/>
 		<param name="device" value="/dev/video0"/>
-	</node>
+	</node> -->
 
 	<node pkg="tf" type="static_transform_publisher" name="azure_transform_publisher" args="0.06733024494259876 -1.105083830530163 0.7141432986462977 -0.43382133525473743 0.40211773657416483 0.5718652126138913 0.5683929570397015 base camera_base 100" />
 
